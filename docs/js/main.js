@@ -178,21 +178,42 @@ return unique_array;
 
 document.addEventListener("DOMContentLoaded", function () {
   //load image to canvas
+  document.getElementById("pixlInput").setAttribute("webkitdirectory", "");
+  document.getElementById("pixlInput").setAttribute("directory", "");
+  document.getElementById("pixlInput").setAttribute("multiple", "");
+
   document.getElementById("pixlInput").onchange = function (e) {
-    var img = new Image();
-    img.src = URL.createObjectURL(this.files[0]);
-    img.onload = () => {
-      //create element
-      //document.getElementById('teste').src = img.src;
-      px.setFromImgSource(img.src);
-      pixelit();
-      //.pixelate()
-      //.convertGrayscale()
-      //.convertPalette();
-      //.saveImage();
-      //console.log(px.getPalette());
-    };
-  };
+    const files = Array.from(this.files);
+    files.sort((a, b) => a.name.localeCompare(b.name));
+    let index = 0;
+
+    async function processFile(file) {
+      return new Promise(async (resolve) => {
+          var img = new Image();
+          img.src = URL.createObjectURL(file);
+          console.log("processFile");
+  
+          img.onload = async () => {
+              console.log("Processing:", files[index].name, "at", new Date().toISOString());
+              console.log(files.map(file => file.name));
+              px.setFromImgSource(img.src);
+              await pixelit();
+              px.saveImage(files[index].name);
+              URL.revokeObjectURL(img.src);
+              resolve();
+          };
+      });
+  }
+
+    async function processFilesInOrder() {
+        while (index < files.length) {
+            await processFile(files[index]);
+            index++;
+        }
+    }
+
+    processFilesInOrder();
+};
 
   //add color to palette
   const addColor = document.getElementById('addcustomcolor');
@@ -234,20 +255,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
   //function to apply effects
   const pixelit = () => {
-    document.querySelector(".loader").classList.toggle("active");
-    setTimeout(() => {
-      document.querySelector(".loader").classList.toggle("active");
-    }, 800);
-    px.setScale(blocksize.value)
-      .setPalette(paletteList[currentPalette])
-      .draw()
-      .pixelate();
+    return new Promise((resolve) => {
+        document.querySelector(".loader").classList.toggle("active");
+        setTimeout(() => {
+            document.querySelector(".loader").classList.toggle("active");
+            px.setScale(blocksize.value)
+                .setPalette(paletteList[currentPalette])
+                .draw()
+                .pixelate();
 
-    greyscale.checked ? px.convertGrayscale() : null;
-    palette.checked ? px.convertPalette() : null;
-    maxheight.value ? px.setMaxHeight(maxheight.value).resizeImage() : null;
-    maxwidth.value ? px.setMaxWidth(maxwidth.value).resizeImage() : null;
-  };
+            greyscale.checked ? px.convertGrayscale() : null;
+            palette.checked ? px.convertPalette() : null;
+            maxheight.value ? px.setMaxHeight(maxheight.value).resizeImage() : null;
+            maxwidth.value ? px.setMaxWidth(maxwidth.value).resizeImage() : null;
+
+            resolve();
+        }, 800);
+    });
+};
 
 
 
