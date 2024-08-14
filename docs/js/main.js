@@ -186,6 +186,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const files = Array.from(this.files);
     files.sort((a, b) => a.name.localeCompare(b.name));
     let index = 0;
+    let newIndex = 0;
 
     async function processFile(file) {
       return new Promise(async (resolve) => {
@@ -194,11 +195,16 @@ document.addEventListener("DOMContentLoaded", function () {
           console.log("processFile");
   
           img.onload = async () => {
+              const newName = document.getElementById('newName').value;
               console.log("Processing:", files[index].name, "at", new Date().toISOString());
               console.log(files.map(file => file.name));
               px.setFromImgSource(img.src);
               await pixelit();
-              px.saveImage(files[index].name);
+
+              const fileExtension = file.name.split('.').pop();
+              const newFilename = `${newName}_${newIndex}.${fileExtension}`;
+              px.saveImage(newFilename);
+
               URL.revokeObjectURL(img.src);
               resolve();
           };
@@ -206,8 +212,25 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
     async function processFilesInOrder() {
+        const currentFrameRateElement = document.getElementById('currentframerate');
+        const targetFrameRateElement = document.getElementById('targetframerate');
+    
+        console.log('Current Frame Rate Element:', currentFrameRateElement);
+        console.log('Target Frame Rate Element:', targetFrameRateElement);
+    
+        const currentFrameRate = parseFloat(currentFrameRateElement.value);
+        const targetFrameRate = parseFloat(targetFrameRateElement.value);
+    
+        console.log('Current Frame Rate:', currentFrameRate);
+        console.log('Target Frame Rate:', targetFrameRate);
+        
+        const rate = Math.floor(currentFrameRate / targetFrameRate)
         while (index < files.length) {
-            await processFile(files[index]);
+            console.log("index: " + index + " rate: " + rate + " index%rate: " + index%rate);
+            if (index % rate == 0) {
+              await processFile(files[index]);
+              newIndex++;
+            }
             index++;
         }
     }
